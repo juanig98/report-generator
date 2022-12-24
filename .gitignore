@@ -1,0 +1,6 @@
+.env
+items.csv
+env
+outputs/prints/*
+outputs/html/*
+__pycache__
