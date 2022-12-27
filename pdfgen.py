@@ -2,8 +2,10 @@ import os
 import csv
 import pdfkit
 import webbrowser
+import money
 from item import Item
 from datetime import datetime
+from typing import Iterable
 from dotenv import load_dotenv
 
 CHROME_PATH = 'usr/bin/google-chrome'
@@ -20,14 +22,14 @@ class PDFGenerator:
         row += '<tr>'
         row += '    <td style="text-align: center;">{}</td>'.format(item.quantity)
         row += '    <td> {} </td>'.format(item.detail)
-        row += '    <td style="text-align: right;">$ {} </td>'.format(item.price)
-        row += '    <td style="text-align: center;"> {} </td>'.format(str(item.aliquot) + " %" if item.aliquot > 0 else "-")
-        row += '    <td style="text-align: right;">$ {} </td>'.format(item.total)
+        row += '    <td style="text-align: right;">$ {} </td>'.format(money.convert(item.price))
+        row += '    <td style="text-align: center;"> {} </td>'.format(str(money.convert(item.aliquot)) + " %" if item.aliquot > 0 else "-")
+        row += '    <td style="text-align: right;">$ {} </td>'.format(money.convert(item.total))
         row += '</tr>'
 
         return row
 
-    def gen_budget(self, items):
+    def gen_budget(self, items: Iterable[Item]):
         customer = input("Cliente: ")
 
         template_path = './templates/budget.html'
@@ -40,7 +42,13 @@ class PDFGenerator:
             filedata = template.read()
 
             rows = ""
+            subtotal = 0
+            total = 0
+            tribute = 0
             for item in items:
+                total += item.total
+                subtotal += item.price
+                tribute += item.tribute
                 rows += self.arm_row(item)
 
             filedata = filedata.replace('[[LOGO]]', os.getenv('LOGO'))
@@ -50,6 +58,9 @@ class PDFGenerator:
             filedata = filedata.replace('[[TITLE]]', title)
             filedata = filedata.replace('[[CUSTOMER]]', customer)
             filedata = filedata.replace('[[ITEMS]]', rows)
+            filedata = filedata.replace('[[SUBTOTAL]]', '$ {}'.format(money.convert(subtotal)))
+            filedata = filedata.replace('[[TRIBUTE]]', '$ {}'.format(money.convert(tribute))if tribute > 0 else ' - ')
+            filedata = filedata.replace('[[TOTAL]]', '$ {}'.format(money.convert(total)))
 
             with open(html_output_path, 'w') as file:
                 file.write(filedata)
